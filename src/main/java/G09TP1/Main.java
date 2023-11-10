@@ -3,15 +3,15 @@ package G09TP1;
 import ClientRegisterStubs.*;
 import ClientRegisterStubs.ClientRegisterGrpc;
 import ClientRegisterStubs.Void;
-import ClienteServiceServerStub.ClientServiceGrpc;
-import ClienteServiceServerStub.Id;
-import ClienteServiceServerStub.Image;
-import ClienteServiceServerStub.Status;
+import ClienteServiceServerStub.*;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -31,10 +31,11 @@ public class Main {
     private static ClientRegisterGrpc.ClientRegisterBlockingStub blockingStub;
     private static ClientServiceGrpc.ClientServiceStub noBlockStub;
     private static ClientServiceGrpc.ClientServiceBlockingStub blockingStubStatus;
+    private static ClientServiceGrpc.ClientServiceStub noBlockingGetImage;
 
     private static String serviceIp;
     private static int servicePort;
-
+    private static int contador = 0;
 
     public static void main(String[] args) {
         try {
@@ -59,7 +60,9 @@ public class Main {
             channel =ManagedChannelBuilder.forAddress(resgisterip, registerportint).usePlaintext().build();
 
 
-
+            blockingStub = ClientRegisterGrpc.newBlockingStub(channel);
+            //get IP and PORT for the service
+            registerAdress = blockingStub.getIP(Void.newBuilder().build());
 
 
 
@@ -69,14 +72,13 @@ public class Main {
             boolean flag = false;
             while (!flag) {
                 try {
-                    blockingStub = ClientRegisterGrpc.newBlockingStub(channel);
-                    //get IP and PORT for the service
-                    registerAdress = blockingStub.getIP(Void.newBuilder().build());
+
 
                     channel2 = ManagedChannelBuilder.forAddress(registerAdress.getIp(),
                             registerAdress.getPort()).usePlaintext().build();
                     flag = true;
                 } catch (Exception e) {
+                   e.printStackTrace();
                     Scanner again = new Scanner(System.in);
                     System.out.println("Ligção com o serviço falhada, quer tentar de novo S/N");
                     String tryagain = again.nextLine();
@@ -111,12 +113,12 @@ public class Main {
                         byte[] imageData = Files.readAllBytes(filePath);
                         //divide image by 4
                         List<byte[]> byteList= divideArray(imageData, 4);
-
+                        
                         //transform byte list in byteString
-                        ByteString byteSeq0=ByteString.copyFrom(byteList.get(0));
-                        ByteString byteSeq1=ByteString.copyFrom(byteList.get(1));
-                        ByteString byteSeq2=ByteString.copyFrom(byteList.get(2));
-                        ByteString byteSeq3=ByteString.copyFrom(byteList.get(3));
+                        ByteString byteSeq0 = ByteString.copyFrom(byteList.get(0));
+                        ByteString byteSeq1 = ByteString.copyFrom(byteList.get(1));
+                        ByteString byteSeq2 = ByteString.copyFrom(byteList.get(2));
+                        ByteString byteSeq3 = ByteString.copyFrom(byteList.get(3));
 
                         //get mark of image
                         Scanner text = new Scanner(System.in);  // Create a Scanner object
@@ -153,19 +155,79 @@ public class Main {
 
 
 
-                        //get
+
                         Scanner idScanner = new Scanner(System.in);  // Create a Scanner object
-                        System.out.println("Enter register port: ");
+                        System.out.println("Image ID: ");
                         String idImage = idScanner.nextLine();  // Read user input
 
                         Id idStatus = Id.newBuilder().setId(Integer.parseInt(idImage)).build();
 
-                        blockingStubStatus = ClientServiceGrpc.newBlockingStub(channel);
+                        blockingStubStatus = ClientServiceGrpc.newBlockingStub(channel2);
 
                         System.out.println(blockingStubStatus.isDone(idStatus));
                         break;
 
                     case 3: // get image
+
+                        Scanner id_getImage = new Scanner(System.in);  // Create a Scanner object
+                        System.out.println("Image ID: ");
+                        String idG= id_getImage.nextLine();
+                        Id idGetImage = Id.newBuilder().setId(Integer.parseInt(idG)).build();
+
+                        noBlockingGetImage = ClientServiceGrpc.newStub(channel2);
+
+                        List<ByteString>[] image = new List[4];
+
+
+
+
+
+
+
+                        StreamObserver<MarkImage> getMImage = new StreamObserver<MarkImage>(){
+
+
+                            @Override
+                            public void onNext(MarkImage markImage) {
+                                image[contador].add(markImage.getImageBytes());
+                                contador++;
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+
+                            }
+
+                            @Override
+                            public void onCompleted() {
+
+                            }
+                        };
+
+                        noBlockingGetImage.getImage(idGetImage, getMImage);
+
+                        //concatenate the ByteString array in a single ByteString
+                        ByteString finalImageBString = ByteString.empty();
+                        for (List<ByteString> byteString : image) {
+                            finalImageBString = finalImageBString.concat(ByteString.copyFrom(byteString));
+                        }
+                        //transform ByteString in byte[]
+                        byte[] finalImage = finalImageBString.toByteArray();
+
+
+
+                        String filePathFinalImage = " ";
+
+                        // Write the finalImage byteArray to a .jpg file
+                        try (FileOutputStream fos = new FileOutputStream(filePathFinalImage)) {
+                            fos.write(finalImage);
+                            System.out.println("File saved successfully as " + filePathFinalImage);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+
+
                         break;
 
                     case 99:

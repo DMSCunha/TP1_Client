@@ -33,7 +33,7 @@ public class StreamObserverImage implements StreamObserver<Id> {
 
     @Override
     public void onCompleted() {
-
+        System.out.println("O id da sua imagem é: " + this.id);
         isCompleted = true;
     }
 }

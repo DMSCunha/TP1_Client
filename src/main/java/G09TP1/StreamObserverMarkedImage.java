@@ -19,6 +19,8 @@ public class StreamObserverMarkedImage implements StreamObserver<MarkImage> {
 
     @Override
     public void onNext(MarkImage markImage) {
+
+
         this.markImage.getImageBytes();
     }
 
