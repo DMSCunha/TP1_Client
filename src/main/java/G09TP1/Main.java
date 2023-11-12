@@ -1,17 +1,17 @@
 package G09TP1;
 
-import ClientRegisterStubs.*;
-import ClientRegisterStubs.ClientRegisterGrpc;
-import ClientRegisterStubs.Void;
 import ClienteServiceServerStub.*;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import registerclientstub.Address;
+import registerclientstub.*;
+import registerclientstub.Void;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -26,17 +26,17 @@ public class Main {
     private static ManagedChannel channel;
     private static ManagedChannel channel2;
 
-    private static  Address registerAdress;
+    private static Address registerAdress;
 
-    private static ClientRegisterGrpc.ClientRegisterBlockingStub blockingStub;
+    private static RegisterClientGrpc.RegisterClientBlockingStub blockingStub;
     private static ClientServiceGrpc.ClientServiceStub noBlockStub;
     private static ClientServiceGrpc.ClientServiceBlockingStub blockingStubStatus;
     private static ClientServiceGrpc.ClientServiceStub noBlockingGetImage;
 
-    private static String serviceIp;
-    private static int servicePort;
+
     private static int contador = 0;
 
+    private static  String imagePath;
     public static void main(String[] args) {
         try {
             if (args.length == 2) {
@@ -60,11 +60,7 @@ public class Main {
             channel =ManagedChannelBuilder.forAddress(resgisterip, registerportint).usePlaintext().build();
 
 
-            blockingStub = ClientRegisterGrpc.newBlockingStub(channel);
-            //get IP and PORT for the service
-            registerAdress = blockingStub.getIP(Void.newBuilder().build());
-
-
+            blockingStub = RegisterClientGrpc.newBlockingStub(channel);
 
 
 
@@ -73,9 +69,16 @@ public class Main {
             while (!flag) {
                 try {
 
+                    //get IP and PORT for the service
+                    registerAdress = blockingStub.getIP(Void.newBuilder().build());
+
+                    System.out.println("Conectado ao serviço:\nIP: " + registerAdress.getIp() + " PORT: " + registerAdress.getPort());
+
+
 
                     channel2 = ManagedChannelBuilder.forAddress(registerAdress.getIp(),
                             registerAdress.getPort()).usePlaintext().build();
+                    System.out.println("chanel 2 criado");
                     flag = true;
                 } catch (Exception e) {
                    e.printStackTrace();
@@ -86,7 +89,7 @@ public class Main {
                         System.exit(0);
                     }
                     else {
-                        blockingStub = ClientRegisterGrpc.newBlockingStub(channel);
+                        blockingStub = RegisterClientGrpc.newBlockingStub(channel);
                         blockingStub.errorIP(registerAdress);
                     }
 
@@ -107,7 +110,7 @@ public class Main {
                         //get path of image
                         Scanner path = new Scanner(System.in);  // Create a Scanner object
                         System.out.println("Enter image path:  ");
-                        String imagePath = port.nextLine();  // Read user input
+                        imagePath = path.nextLine();  // Read user input
                         Path filePath = Paths.get(imagePath);
                         //get image
                         byte[] imageData = Files.readAllBytes(filePath);
@@ -123,9 +126,12 @@ public class Main {
                         //get mark of image
                         Scanner text = new Scanner(System.in);  // Create a Scanner object
                         System.out.println("Enter text to mark image:  ");
-                        String imageText = port.nextLine();  // Read user input
+                        String imageText = text.nextLine();  // Read user input
 
-
+                        //get image name
+                        Scanner text1 = new Scanner(System.in);  // Create a Scanner object
+                        System.out.println("Enter image name:  ");
+                        String imageName = text1.nextLine();  // Read user input
 
 
 
@@ -136,14 +142,10 @@ public class Main {
                         StreamObserver<Image> streanmimage = noBlockStub.sendImage(id);
 
 
-
-                        /*for (int i = 0; i < 4; i++){
-                            streanmimage.onNext(Image.newBuilder().setImageBytes().setKeywords(imageText).build());
-                        }*/
-                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq0).setKeywords(imageText).build());
-                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq1).setKeywords(imageText).build());
-                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq2).setKeywords(imageText).build());
-                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq3).setKeywords(imageText).build());
+                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq0).setKeywords(imageText).setName(imageName).build());
+                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq1).setKeywords(imageText).setName(imageName).build());
+                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq2).setKeywords(imageText).setName(imageName).build());
+                        streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq3).setKeywords(imageText).setName(imageName).build());
                         streanmimage.onCompleted();
 
                         while (!id.isCompleted()){
@@ -215,12 +217,16 @@ public class Main {
                         byte[] finalImage = finalImageBString.toByteArray();
 
 
+                        int lastPeriodIndex = imagePath.lastIndexOf('.');
 
-                        String filePathFinalImage = " ";
+                        String filePathFinalImage = imagePath.substring(0, lastPeriodIndex) + "mark" + imagePath.substring(lastPeriodIndex);
+
+
 
                         // Write the finalImage byteArray to a .jpg file
                         try (FileOutputStream fos = new FileOutputStream(filePathFinalImage)) {
                             fos.write(finalImage);
+
                             System.out.println("File saved successfully as " + filePathFinalImage);
                         } catch (IOException e) {
                             e.printStackTrace();
