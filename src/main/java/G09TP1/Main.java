@@ -58,7 +58,7 @@ public class Main {
 
             //cria chanel com o register
             channel =ManagedChannelBuilder.forAddress(resgisterip, registerportint).usePlaintext().build();
-
+            //channel =ManagedChannelBuilder.forAddress("34.175.157.230", 8500).usePlaintext().build();
 
             blockingStub = RegisterClientGrpc.newBlockingStub(channel);
 
@@ -74,10 +74,12 @@ public class Main {
 
                     System.out.println("Conectado ao serviço:\nIP: " + registerAdress.getIp() + " PORT: " + registerAdress.getPort());
 
-
-
                     channel2 = ManagedChannelBuilder.forAddress(registerAdress.getIp(),
                             registerAdress.getPort()).usePlaintext().build();
+
+                    noBlockStub = ClientServiceGrpc.newStub(channel2);
+
+
                     System.out.println("chanel 2 criado");
                     flag = true;
                 } catch (Exception e) {
@@ -104,8 +106,6 @@ public class Main {
             while(true){
                 switch (Menu()) {
                     case 1: //enviar imagem
-
-
 
                         //get path of image
                         Scanner path = new Scanner(System.in);  // Create a Scanner object
@@ -134,13 +134,8 @@ public class Main {
                         String imageName = text1.nextLine();  // Read user input
 
 
-
-
-                        noBlockStub = ClientServiceGrpc.newStub(channel2);
-
                         StreamObserverImage id = new StreamObserverImage();
                         StreamObserver<Image> streanmimage = noBlockStub.sendImage(id);
-
 
                         streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq0).setKeywords(imageText).setName(imageName).build());
                         streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq1).setKeywords(imageText).setName(imageName).build());
@@ -148,11 +143,9 @@ public class Main {
                         streanmimage.onNext(Image.newBuilder().setImageBytes(byteSeq3).setKeywords(imageText).setName(imageName).build());
                         streanmimage.onCompleted();
 
-                        while (!id.isCompleted()){
-                            Thread.sleep(1000);
-                        }
                         System.out.println("Stream completo");
                         break;
+
                     case 2: //Verificar id da imagem
 
 
@@ -166,7 +159,7 @@ public class Main {
 
                         blockingStubStatus = ClientServiceGrpc.newBlockingStub(channel2);
 
-                        System.out.println(blockingStubStatus.isDone(idStatus));
+                        System.out.println(blockingStubStatus.isDone(idStatus).getStatus());
                         break;
 
                     case 3: // get image
@@ -176,14 +169,10 @@ public class Main {
                         String idG= id_getImage.nextLine();
                         Id idGetImage = Id.newBuilder().setId(Integer.parseInt(idG)).build();
 
+
                         noBlockingGetImage = ClientServiceGrpc.newStub(channel2);
 
                         List<ByteString>[] image = new List[4];
-
-
-
-
-
 
 
                         StreamObserver<MarkImage> getMImage = new StreamObserver<MarkImage>(){
@@ -216,11 +205,9 @@ public class Main {
                         //transform ByteString in byte[]
                         byte[] finalImage = finalImageBString.toByteArray();
 
-
                         int lastPeriodIndex = imagePath.lastIndexOf('.');
 
                         String filePathFinalImage = imagePath.substring(0, lastPeriodIndex) + "mark" + imagePath.substring(lastPeriodIndex);
-
 
 
                         // Write the finalImage byteArray to a .jpg file

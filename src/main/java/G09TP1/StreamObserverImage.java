@@ -1,5 +1,5 @@
 package G09TP1;
-import ClientRegisterStubs.Address;
+//import ClientRegisterStubs.Address;
 import ClienteServiceServerStub.ClientServiceGrpc;
 
 import ClienteServiceServerStub.Id;
@@ -8,7 +8,7 @@ import io.grpc.stub.StreamObserver;
 
 public class StreamObserverImage implements StreamObserver<Id> {
 
-    private int id;
+    public int id;
     private boolean isCompleted=false;
     public boolean isCompleted(){
         return isCompleted;
